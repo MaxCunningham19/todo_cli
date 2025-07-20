@@ -1,12 +1,11 @@
-use std::fs::File;
-use std::io::Result;
+use std::{fs::File, io::Error};
+use std::io;
 
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Status {
-    Todo, 
+    Todo,
     Complete,
 }
 
@@ -17,8 +16,11 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(desc:String) -> Self {
-        Item { status: Status::Todo, desc}
+    pub fn new(desc: String) -> Self {
+        Item {
+            status: Status::Todo,
+            desc,
+        }
     }
 
     pub fn mark_as_done(&mut self) {
@@ -45,26 +47,31 @@ impl TodoList {
 
     pub fn add(&mut self, desc: String) {
         self.items.push(Item::new(desc));
-    } 
+    }
 
-    pub fn remove(&mut self, idx: usize) {
-        self.items.remove(idx);
+    pub fn remove(&mut self, idx: usize) -> Result<(), String> {
+        if idx < self.items.len() {
+            self.items.remove(idx);
+            Ok(())
+        } else {
+            Err("Index out of bounds".to_string())
+        }
     }
 
     /// Sets the status of a todo item as completed if it exists.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `idx` - The index of the item to be marked as complete.
-    /// 
+    ///
     /// # Examples
-    /// 
-    /// ``` 
+    ///
+    /// ```
     /// let mut list = TodoList::new();
     /// list.add("Buy Milk");
     /// list.mark_as_done(0);
     /// ```
-    pub fn mark_as_done(&mut self, idx: usize)  {
+    pub fn mark_as_done(&mut self, idx: usize) {
         if let Some(item) = self.items.get_mut(idx) {
             item.mark_as_done();
         };
@@ -79,13 +86,13 @@ impl TodoList {
         &self.items
     }
 
-    pub fn save(&self, path: &str) -> Result<()> {
+    pub fn save(&self, path: &str) -> io::Result<()> {
         let file = File::create(path)?;
         serde_json::to_writer_pretty(file, &self.items)?;
         Ok(())
     }
 
-    pub fn load(&mut self, path: &str) -> Result<()> {
+    pub fn load(&mut self, path: &str) -> io::Result<()> {
         let file = File::open(path)?;
         self.items = serde_json::from_reader(file)?;
         Ok(())
