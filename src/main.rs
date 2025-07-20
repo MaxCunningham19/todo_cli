@@ -49,8 +49,5 @@ fn main() {
         Command::Clear => {
             println!("Clearing completed tasks");
         }
-        _ => {
-            println!("I hate you");
-        }
     }
 }
