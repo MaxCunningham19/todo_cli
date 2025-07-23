@@ -2,7 +2,7 @@ use std::process::exit;
 
 use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
-use todo::{store::json_store, Item, List, Progress};
+use todo::{read, store, Item, List, Progress, Status};
 
 #[derive(Subcommand, Debug, PartialEq, Clone)]
 enum UpdateCommand {
@@ -55,6 +55,12 @@ enum Command {
         indices: Vec<usize>,
     },
 
+    /// Mark one or more tasks as TODO.
+    Undo {
+       #[arg(help = "One or more task indices to mark as TODO")]
+        indices: Vec<usize>, 
+    },
+
     /// Update a field of a task.
     Update {
         #[arg(help = "Index of the task to update")]
@@ -100,7 +106,9 @@ fn format_list(list: &List) {
 }
 fn main() {
     let cli = Cli::parse();
-    let mut todo_list = json_store::read(DEFAULT_DB_PATH).unwrap_or_else(|err| {eprintln!("Could not read list from location. Err: {}",err); exit(1)});
+
+    let mut todo_list = read(DEFAULT_DB_PATH).unwrap_or_else(|err| {eprintln!("Could not read list from location. Err: {}",err); exit(1)});
+
     match &cli.command {
         Command::Add {
             task,
@@ -117,6 +125,7 @@ fn main() {
             }
             todo_list.add(item);
         }
+
         Command::Remove { indices } => {
             for index in indices {
                 if let Some(_) = todo_list.remove(index - 1) {
@@ -129,37 +138,58 @@ fn main() {
                 }
             }
         }
+
         Command::Done { indices } => {
             for index in indices {
-                // todo_list.mark_as_done(index - 1);
-                println!("Marking task {:?} as complete", index);
+                match todo_list.mutate_index(index-1, |item| {
+                    item.set_progress(Progress::one());
+                }) {
+                    Ok(_) => println!("Marking task {:?} as complete", index),
+                    Err(e) => eprintln!("{}",e),
+                }
             }
         }
+    
+        Command::Undo { indices } => {
+            for index in indices {
+                match todo_list.mutate_index(index-1, |item| {
+                    item.set_progress(Progress::zero());
+                }) {
+                    Ok(_) => println!("Marking task {:?} as complete", index),
+                    Err(e) => eprintln!("{}",e),
+                }
+            }
+        }
+
+
         Command::List => {
             println!("Printing List");
-            // print!("{}", format_list(&todo_list));
+            format_list(&todo_list);
         }
+
         Command::Clear => {
-            // todo_list.clear_done_tasks();
             println!("Clearing completed tasks");
+            todo_list.mut_list().retain(|item| item.status() != &Status::Complete)
         }
+
         Command::Update { index, value } => {
+            let index = index - 1;
             match value {
-                UpdateCommand::Date { date } => todo_list.mutate_index(*index, |item| {
+                UpdateCommand::Date { date } => todo_list.mutate_index(index, |item| {
                     item.set_deadline(*date);
                 }),
-                UpdateCommand::Desc { desc } => todo_list.mutate_index(*index, |item| {
+                UpdateCommand::Desc { desc } => todo_list.mutate_index(index, |item| {
                     item.set_desc(desc.to_string());
                 }),
-                UpdateCommand::Progress { progress } => todo_list.mutate_index(*index, |item| {
+                UpdateCommand::Progress { progress } => todo_list.mutate_index(index, |item| {
                     item.set_progress(progress.clone());
                 }),
             }
             .unwrap_or_else(|err| eprint!("{}", err));
         }
     };
-    // todo_list.save(DEFAULT_DB_PATH);
-    json_store::store(&todo_list, DEFAULT_DB_PATH).unwrap_or_else(|err| {eprintln!("Could not save list. Err: {}",err); exit(1)});
+
+    store(&todo_list, DEFAULT_DB_PATH).unwrap_or_else(|err| {eprintln!("Could not save list. Err: {}",err); exit(1)});
     if cli.command != Command::List {
         format_list(&todo_list);
     }

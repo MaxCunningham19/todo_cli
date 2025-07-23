@@ -1,8 +1,14 @@
 {
   "items": [
     {
+      "status": "Complete",
+      "desc": "one",
+      "deadline": null,
+      "progress": 1.0
+    },
+    {
       "status": "Todo",
-      "desc": "first",
+      "desc": "three",
       "deadline": null,
       "progress": 0.0
     }

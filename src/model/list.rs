@@ -32,6 +32,10 @@ impl List {
         &self.items
     }
 
+    pub fn mut_list(&mut self) -> &mut Vec<Item> {
+        &mut self.items
+    }
+
     pub fn mutate_index<F>(&mut self, index: usize, mut function: F) -> Result<(), String>
     where
         F: FnMut(&mut Item),
