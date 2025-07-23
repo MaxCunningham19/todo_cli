@@ -1,1 +1,10 @@
-[]
+{
+  "items": [
+    {
+      "status": "Todo",
+      "desc": "first",
+      "deadline": null,
+      "progress": 0.0
+    }
+  ]
+}

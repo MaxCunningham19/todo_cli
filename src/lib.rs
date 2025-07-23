@@ -1,5 +1,4 @@
-pub mod todo;
+pub mod model;
+pub mod store;
 
-pub use todo::Item;
-pub use todo::Status;
-pub use todo::TodoList;
+pub use model::{Item, List, Progress, Status};
